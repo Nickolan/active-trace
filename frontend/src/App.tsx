@@ -62,6 +62,14 @@ import { UsuarioFormPage } from "@/features/usuarios-tenant/pages/UsuarioFormPag
 import { AuditoriaPanelPage } from "@/features/auditoria/pages/AuditoriaPanelPage";
 import { LogAuditoriaPage } from "@/features/auditoria/pages/LogAuditoriaPage";
 
+// ── Perfil ────────────────────────────────────────────────────────────────────
+import { PerfilPage } from "@/features/perfil/pages/PerfilPage";
+
+// ── Inbox ─────────────────────────────────────────────────────────────────────
+import { InboxPage } from "@/features/inbox/pages/InboxPage";
+import { HiloPage } from "@/features/inbox/pages/HiloPage";
+import { NuevoHiloPage } from "@/features/inbox/pages/NuevoHiloPage";
+
 import { ColoquiosLayout } from "@/features/coloquios/pages/ColoquiosLayout";
 import { ColoquiosPanelPage } from "@/features/coloquios/pages/ColoquiosPanelPage";
 import { ConvocatoriaListPage } from "@/features/coloquios/pages/ConvocatoriaListPage";
@@ -406,6 +414,14 @@ export function App() {
                 </RequirePermission>
               }
             />
+
+            {/* ── Perfil ───────────────────────────────────────────────── */}
+            <Route path="perfil" element={<PerfilPage />} />
+
+            {/* ── Inbox ────────────────────────────────────────────────── */}
+            <Route path="inbox" element={<InboxPage />} />
+            <Route path="inbox/nuevo" element={<NuevoHiloPage />} />
+            <Route path="inbox/:hiloId" element={<HiloPage />} />
 
             {/* Catch-all inside protected area — shows 404 with layout */}
             <Route path="*" element={<NotFoundPage />} />
