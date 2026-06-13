@@ -68,7 +68,7 @@ export function HiloPage() {
 
   if (!data) return null;
 
-  const currentUserId = user?.id ?? "";
+  const currentUserId = user?.usuario_id ?? user?.id ?? "";
   const mensajes = data.mensajes ?? [];
 
   return (

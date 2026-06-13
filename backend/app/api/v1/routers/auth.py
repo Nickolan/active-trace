@@ -17,6 +17,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -38,6 +39,7 @@ from app.repositories.refresh_token_repository import RefreshTokenRepository
 from app.repositories.two_factor_challenge_repository import (
     TwoFactorChallengeRepository,
 )
+from app.models.usuario import Usuario
 from app.repositories.user_repository import UserRepository
 from app.repositories.user_rol_repository import UserRolRepository
 from app.schemas.auth import (
@@ -375,6 +377,16 @@ async def get_me(
         current_user.roles
     )
 
+    # Resolve domain usuario_id (may differ from auth user.id)
+    domain_row = await db.get(Usuario, current_user.user_id)
+    if domain_row is None:
+        result = await db.execute(
+            select(Usuario.id).where(Usuario.auth_user_id == current_user.user_id)
+        )
+        domain_id = result.scalar_one_or_none()
+    else:
+        domain_id = domain_row.id
+
     return UserMeResponse(
         id=str(user.id),
         tenant_id=str(user.tenant_id),
@@ -383,4 +395,5 @@ async def get_me(
         totp_enabled=user.totp_enabled,
         roles=current_user.roles,
         permisos=sorted(permisos),
+        usuario_id=str(domain_id) if domain_id else None,
     )

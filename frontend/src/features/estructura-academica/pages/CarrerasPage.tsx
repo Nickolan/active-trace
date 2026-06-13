@@ -15,6 +15,7 @@ import type {
 } from "@/features/estructura-academica/types/estructura";
 import { FilterableTable } from "@/shared/components/FilterableTable";
 import type { Column } from "@/shared/components/FilterableTable";
+import { EstructuraTabs } from "@/features/estructura-academica/components/EstructuraTabs";
 
 function CarreraForm({
   defaultValues,
@@ -162,6 +163,7 @@ export function CarrerasPage() {
 
   return (
     <div className="space-y-6">
+      <EstructuraTabs />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Carreras</h1>

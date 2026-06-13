@@ -15,6 +15,7 @@ import type {
 } from "@/features/estructura-academica/types/estructura";
 import { FilterableTable } from "@/shared/components/FilterableTable";
 import type { Column } from "@/shared/components/FilterableTable";
+import { EstructuraTabs } from "@/features/estructura-academica/components/EstructuraTabs";
 
 function CohorteForm({
   defaultValues,
@@ -193,6 +194,7 @@ export function CohortesPage() {
 
   return (
     <div className="space-y-6">
+      <EstructuraTabs />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Cohortes</h1>

@@ -70,6 +70,7 @@ export interface UserInfo {
   roles: string[];
   permisos: string[];
   tenant_id: string;
+  usuario_id?: string;
 }
 
 // ---------------------------------------------------------------------------

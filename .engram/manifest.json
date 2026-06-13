@@ -232,6 +232,14 @@
       "sessions": 2,
       "memories": 6,
       "prompts": 16
+    },
+    {
+      "id": "e712675c",
+      "created_by": "Nicolas",
+      "created_at": "2026-06-13T15:32:17Z",
+      "sessions": 0,
+      "memories": 3,
+      "prompts": 0
     }
   ]
 }
