@@ -13,7 +13,7 @@ export function HistorialLiquidacionesPage() {
     periodo ? { periodo } : undefined,
   );
 
-  const cerradas = (liquidaciones ?? []).filter((l) => l.estado === "cerrada");
+  const cerradas = (liquidaciones ?? []).filter((l) => l.estado === "Cerrada");
   const rows = cerradas as unknown as Record<string, unknown>[];
 
   const columns: Column<Record<string, unknown>>[] = [

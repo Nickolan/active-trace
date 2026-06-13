@@ -1,7 +1,9 @@
-"""Router de administracion de usuarios (C-07).
+"""Router de administracion de usuarios (C-07) y roles (C-26).
 
 Endpoints protegidos con ``require_permission("admin:gestionar-usuarios")``:
 - ``/api/admin/usuarios`` — CRUD de usuarios con PII enmascarada.
+- ``/api/admin/roles`` — lista de roles activos del tenant.
+- ``/api/admin/usuarios/{id}/roles`` — asignacion/remocion de roles.
 """
 
 from typing import Optional
@@ -19,6 +21,8 @@ from app.core.dependencies import (
 from app.core.exceptions import BusinessError
 from app.core.pii import mask_alias_cbu, mask_cbu, mask_cuil, mask_dni, mask_email
 from app.models.usuario import Usuario
+from app.repositories.user_rol_repository import UserRolRepository
+from app.schemas.rol import RolAsignarRequest, RolRead
 from app.schemas.usuario import (
     UsuarioCreate,
     UsuarioListResponse,
@@ -220,3 +224,150 @@ async def eliminar_usuario(
         )
     await svc.soft_delete(usuario_id)
     return {"status": "deleted"}
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# GET /api/admin/roles — Listar roles activos del tenant (C-26)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/roles",
+    dependencies=[Depends(require_permission("admin:gestionar-usuarios"))],
+)
+async def listar_roles(
+    current_user: UserContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[RolRead]:
+    """Lista todos los roles activos del tenant."""
+    repo = UserRolRepository(session=db, tenant_id=current_user.tenant_id)
+    roles = await repo.get_all_active()
+    return [RolRead(id=r.id, codigo=r.codigo, nombre=r.nombre) for r in roles]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# GET /api/admin/usuarios/{usuario_id}/roles — Roles de un usuario (C-26)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@router.get(
+    "/usuarios/{usuario_id}/roles",
+    dependencies=[Depends(require_permission("admin:gestionar-usuarios"))],
+)
+async def listar_roles_usuario(
+    usuario_id: UUID,
+    current_user: UserContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[RolRead]:
+    """Retorna los roles asignados al usuario. 404 si el usuario no existe."""
+    svc = _build_service(db, current_user.tenant_id)
+    usuario = await svc.obtener(usuario_id)
+    if usuario is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado",
+        )
+    # user_rol.user_id referencia users.id (auth), no usuario.id (dominio)
+    auth_user_id = usuario.auth_user_id
+    if auth_user_id is None:
+        return []
+    repo = UserRolRepository(session=db, tenant_id=current_user.tenant_id)
+    roles = await repo.get_roles_for_user(auth_user_id)
+    return [RolRead(id=r.id, codigo=r.codigo, nombre=r.nombre) for r in roles]
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# POST /api/admin/usuarios/{usuario_id}/roles — Asignar rol (C-26)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@router.post(
+    "/usuarios/{usuario_id}/roles",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("admin:gestionar-usuarios"))],
+)
+async def asignar_rol_usuario(
+    usuario_id: UUID,
+    body: RolAsignarRequest,
+    current_user: UserContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Asigna un rol a un usuario (idempotente).
+
+    Verifica que el usuario y el rol existen en el tenant.
+    Si la asignacion ya existe, no duplica la fila.
+    """
+    svc = _build_service(db, current_user.tenant_id)
+    usuario = await svc.obtener(usuario_id)
+    if usuario is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado",
+        )
+
+    # user_rol.user_id referencia users.id (auth), no usuario.id (dominio)
+    auth_user_id = usuario.auth_user_id
+    if auth_user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Usuario sin cuenta de autenticación vinculada",
+        )
+
+    repo = UserRolRepository(session=db, tenant_id=current_user.tenant_id)
+
+    # Verificar que el rol existe y pertenece al tenant
+    roles_tenant = await repo.get_all_active()
+    rol_ids_tenant = {r.id for r in roles_tenant}
+    if body.rol_id not in rol_ids_tenant:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Rol no encontrado en el tenant",
+        )
+
+    # Idempotencia: solo asignar si no existe
+    existing = await repo.get_assignment(user_id=auth_user_id, rol_id=body.rol_id)
+    if existing is None:
+        await repo.assign_role(user_id=auth_user_id, rol_id=body.rol_id)
+
+    return {"status": "ok"}
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# DELETE /api/admin/usuarios/{usuario_id}/roles/{rol_id} — Remover rol (C-26)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@router.delete(
+    "/usuarios/{usuario_id}/roles/{rol_id}",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_permission("admin:gestionar-usuarios"))],
+)
+async def remover_rol_usuario(
+    usuario_id: UUID,
+    rol_id: UUID,
+    current_user: UserContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Remueve un rol de un usuario. 404 si el usuario no existe o la asignacion no existe."""
+    svc = _build_service(db, current_user.tenant_id)
+    usuario = await svc.obtener(usuario_id)
+    if usuario is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado",
+        )
+    # user_rol.user_id referencia users.id (auth), no usuario.id (dominio)
+    auth_user_id = usuario.auth_user_id
+    if auth_user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Asignacion de rol no encontrada",
+        )
+    repo = UserRolRepository(session=db, tenant_id=current_user.tenant_id)
+    removed = await repo.remove_role(user_id=auth_user_id, rol_id=rol_id)
+    if not removed:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Asignacion de rol no encontrada",
+        )
+    return {"status": "removed"}

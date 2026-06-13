@@ -7,9 +7,12 @@ del User de autenticacion con password temporal.
 
 from __future__ import annotations
 
+import logging
 import secrets
 from typing import Optional
 from uuid import UUID
+
+_logger = logging.getLogger(__name__)
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -75,6 +78,7 @@ class UsuarioService:
 
         # Crear User de auth con password temporal
         temp_password = secrets.token_urlsafe(12)
+        _logger.warning("[DEV] Contraseña temporal para %s: %s", data.email, temp_password)
         password_hash = hash_password(temp_password)
         try:
             auth_user = await self.auth_repo.create(

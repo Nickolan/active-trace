@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export const LiquidacionEstadoEnum = z.enum(["abierta", "cerrada"]);
+export const LiquidacionEstadoEnum = z.enum(["Abierta", "Cerrada"]);
 export const FacturaEstadoEnum = z.enum(["pendiente", "abonada"]);
 
 // ─── Liquidación ──────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ export const LiquidacionSchema = z.object({
   periodo: z.string(), // YYYY-MM
   usuario_id: z.string().uuid(),
   rol: z.string(),
-  comisiones: z.number().int(),
+  comisiones: z.array(z.string()).nullable().optional(),
   monto_base: z.string(),
   monto_plus: z.string(),
   total: z.string(),
@@ -38,7 +38,7 @@ export const CalcularLiquidacionSchema = z.object({
   periodo: z.string().regex(/^\d{4}-\d{2}$/, "Formato YYYY-MM"),
   usuario_id: z.string().uuid("Seleccioná un usuario"),
   rol: z.string().min(1, "El rol es obligatorio"),
-  comisiones: z.number().int().min(0),
+  comisiones: z.array(z.string()).optional(),
 }).strict();
 
 export type CalcularLiquidacion = z.infer<typeof CalcularLiquidacionSchema>;

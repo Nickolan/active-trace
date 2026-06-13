@@ -363,7 +363,7 @@ def _liq_to_dict(liq: Liquidacion) -> dict:
         "es_nexo": liq.es_nexo,
         "excluido_por_factura": liq.excluido_por_factura,
         "estado": liq.estado,
-        "cerrada_at": liq.cerrada_at.isoformat() if liq.cerrada_at else None,
+        "cerrada_at": str(liq.cerrada_at) if liq.cerrada_at else None,
         "created_at": liq.created_at.isoformat(),
         "updated_at": liq.updated_at.isoformat(),
     }

@@ -8,6 +8,12 @@ import {
   useActualizarUsuarioTenant,
 } from "@/features/usuarios-tenant/hooks/useUsuariosTenant";
 import {
+  useRoles,
+  useRolesUsuario,
+  useAsignarRol,
+  useRemoverRol,
+} from "@/features/usuarios-tenant/hooks/useRoles";
+import {
   UsuarioCreateSchema,
 } from "@/features/usuarios-tenant/types/usuarios";
 import type { UsuarioCreate } from "@/features/usuarios-tenant/types/usuarios";
@@ -21,6 +27,14 @@ export function UsuarioFormPage() {
   const { data: usuario, isLoading } = useUsuarioTenantById(id);
   const crearMutation = useCrearUsuarioTenant();
   const actualizarMutation = useActualizarUsuarioTenant();
+
+  // Roles — solo se usan cuando estamos editando
+  const { data: rolesDisponibles = [] } = useRoles();
+  const { data: rolesUsuario = [] } = useRolesUsuario(id);
+  const asignarRolMutation = useAsignarRol();
+  const removerRolMutation = useRemoverRol();
+
+  const rolesUsuarioIds = new Set(rolesUsuario.map((r) => r.id));
 
   const {
     register,
@@ -251,6 +265,53 @@ export function UsuarioFormPage() {
             </div>
           </div>
         </section>
+
+        {/* Roles — solo visible cuando se edita un usuario existente */}
+        {isEditing && (
+          <section className="space-y-4">
+            <h2 className="text-base font-semibold text-gray-800">Roles</h2>
+            {rolesDisponibles.length === 0 ? (
+              <p className="text-sm text-gray-500">No hay roles disponibles en el tenant.</p>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {rolesDisponibles.map((rol) => {
+                  const checked = rolesUsuarioIds.has(rol.id);
+                  const isMutating =
+                    (asignarRolMutation.isPending &&
+                      (asignarRolMutation.variables as { rolId: string } | undefined)?.rolId === rol.id) ||
+                    (removerRolMutation.isPending &&
+                      (removerRolMutation.variables as { rolId: string } | undefined)?.rolId === rol.id);
+
+                  return (
+                    <label
+                      key={rol.id}
+                      className="flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                        checked={checked}
+                        disabled={isMutating}
+                        onChange={(e) => {
+                          if (!id) return;
+                          if (e.target.checked) {
+                            asignarRolMutation.mutate({ userId: id, rolId: rol.id });
+                          } else {
+                            removerRolMutation.mutate({ userId: id, rolId: rol.id });
+                          }
+                        }}
+                      />
+                      <span className="text-gray-700">
+                        {rol.nombre}
+                        <span className="ml-1 text-xs text-gray-400">({rol.codigo})</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
         <div className="flex justify-end gap-3 border-t pt-4">
           <button
