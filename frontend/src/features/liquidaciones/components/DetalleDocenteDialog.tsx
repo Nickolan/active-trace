@@ -120,7 +120,7 @@ export function DetalleDocenteDialog({
             </div>
           )}
 
-          {liquidacion.estado === "cerrada" && liquidacion.cerrada_at && (
+          {liquidacion.estado === "Cerrada" && liquidacion.cerrada_at && (
             <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">
               Liquidación cerrada el{" "}
               {new Date(liquidacion.cerrada_at).toLocaleDateString("es-AR")}

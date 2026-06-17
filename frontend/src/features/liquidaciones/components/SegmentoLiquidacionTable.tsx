@@ -76,7 +76,7 @@ export function SegmentoLiquidacionTable({
       render: (row) => {
         const estado = row.estado as string;
         const color =
-          estado === "cerrada"
+          estado === "Cerrada"
             ? "bg-green-100 text-green-800"
             : "bg-yellow-100 text-yellow-800";
         return (
@@ -91,7 +91,7 @@ export function SegmentoLiquidacionTable({
       label: "Acciones",
       render: (row) => {
         const liq = row as unknown as Liquidacion;
-        const cerrada = liq.estado === "cerrada";
+        const cerrada = liq.estado === "Cerrada";
         return (
           <div className="flex items-center gap-2">
             {onVerDetalle && (

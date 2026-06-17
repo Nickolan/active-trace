@@ -336,3 +336,4 @@ class UserMeResponse(BaseModel):
     totp_enabled: bool
     roles: list[str] = Field(default_factory=list)
     permisos: list[str] = Field(default_factory=list)
+    usuario_id: str | None = None

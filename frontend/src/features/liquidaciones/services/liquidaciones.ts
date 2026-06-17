@@ -32,8 +32,8 @@ export async function fetchLiquidaciones(
 ): Promise<LiquidacionList> {
   const params: Record<string, string> = {};
   if (filters?.periodo) params.periodo = filters.periodo;
-  const { data } = await api.get<LiquidacionList>("/liquidaciones", { params });
-  return data;
+  const { data } = await api.get<{items: LiquidacionList, total: number}>("/liquidaciones", { params });
+  return data.items;
 }
 
 export async function fetchLiquidacionById(id: string): Promise<Liquidacion> {

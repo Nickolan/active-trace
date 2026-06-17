@@ -15,14 +15,16 @@ import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { LoadingSpinner } from "@/shared/components/LoadingSpinner";
 
 function buildSegmentos(items: Liquidacion[]): SegmentosLiquidacion {
+  console.log("ITEMS SEGMENTOS: ",items);
+  
   return {
-    general: items.filter(
+    general: items?.filter(
       (l) => !l.es_nexo && !l.excluido_por_factura,
     ),
-    nexo: items.filter(
+    nexo: items?.filter(
       (l) => l.es_nexo && !l.excluido_por_factura,
     ),
-    facturan: items.filter((l) => l.excluido_por_factura),
+    facturan: items?.filter((l) => l.excluido_por_factura),
   };
 }
 
