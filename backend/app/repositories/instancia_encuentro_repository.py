@@ -14,6 +14,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.instancia_encuentro import InstanciaEncuentro
 from app.repositories.base import BaseRepository
 
+# Mapa de valores que puede enviar el frontend a valores del enum PostgreSQL.
+# Previene error 500 cuando el frontend usa lowercase (pendiente/realizado/cancelado).
+_ESTADO_FRONTEND_MAP: dict[str, str] = {
+    "pendiente": "Programado",
+    "realizado": "Realizado",
+    "cancelado": "Cancelado",
+}
+
 
 class InstanciaEncuentroRepository(BaseRepository[InstanciaEncuentro]):
     """Repository de instancias de encuentro con soporte para creación masiva y filtros."""
@@ -69,7 +77,9 @@ class InstanciaEncuentroRepository(BaseRepository[InstanciaEncuentro]):
         if hasta is not None:
             conditions.append(self.model.fecha <= hasta)
         if estado is not None:
-            conditions.append(self.model.estado == estado)
+            # Mapear lowercase del frontend al valor del enum PostgreSQL
+            estado_normalizado = _ESTADO_FRONTEND_MAP.get(estado, estado)
+            conditions.append(self.model.estado == estado_normalizado)
         if usuario_id is not None:
             # TODO: join con slot_encuentro para filtrar por asignacion_id
             pass

@@ -75,3 +75,15 @@ export const ConvocatoriasListResponseSchema = z.object({
 }).passthrough();
 
 export type ConvocatoriasListResponse = z.infer<typeof ConvocatoriasListResponseSchema>;
+
+export interface ReservaResponse {
+  id: string;
+  evaluacion_id: string;
+  alumno_id: string;
+  fecha_hora: string;
+  estado: string;
+  created_at: string | null;
+  updated_at: string | null;
+  alumno_nombre: string | null;
+  alumno_email: string | null;
+}

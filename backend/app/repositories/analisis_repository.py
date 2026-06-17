@@ -442,9 +442,9 @@ class AnalisisRepository(BaseRepository[Calificacion]):
             .where(and_(*filters))
         )
 
-        # Si hay filtro de actividad, aplicarlo
+        # Si hay filtro de actividad, aplicarlo (case-insensitive contains)
         if actividad:
-            base = base.where(self.model.actividad == actividad)
+            base = base.where(self.model.actividad.ilike(f"%{actividad}%"))
 
         # Si hay min_aprobadas, filtrar alumnos que cumplan
         if min_aprobadas is not None:

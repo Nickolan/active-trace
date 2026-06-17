@@ -7,6 +7,7 @@ import type {
   AgendaItem,
   ConvocatoriasFilters,
   ConvocatoriasListResponse,
+  ReservaResponse,
 } from "@/features/coloquios/types/coloquios";
 
 export async function fetchMetricas(): Promise<MetricasColoquios> {
@@ -62,5 +63,13 @@ export async function fetchAgenda(
   const { data } = await api.get<AgendaItem[]>("/coloquios/agenda", {
     params,
   });
+  return data;
+}
+
+export async function fetchMisReservas(): Promise<{
+  items: ReservaResponse[];
+  total: number;
+}> {
+  const { data } = await api.get("/coloquios/mis-reservas");
   return data;
 }

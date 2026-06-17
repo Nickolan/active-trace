@@ -9,6 +9,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +24,17 @@ from app.schemas.mensajeria import (
     MensajeResponse,
 )
 from app.services.mensajeria_service import MensajeriaService
+
+
+# ── Schemas ──────────────────────────────────────────────────────────
+
+
+class UsuarioDisponibleResponse(BaseModel):
+    """Usuario disponible para mensajeria (sin PII)."""
+
+    id: str
+    nombre: str
+    apellidos: str
 
 router = APIRouter(
     prefix="/api/inbox",
@@ -78,6 +90,39 @@ async def crear_hilo(
         return await svc.crear_hilo(body)
     except BusinessError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+# ── GET /api/inbox/usuarios-disponibles — listar destinatarios ─────────────────
+
+
+@router.get(
+    "/usuarios-disponibles",
+)
+async def listar_usuarios_disponibles(
+    db: AsyncSession = Depends(get_db),
+    ctx: UserContext = Depends(get_current_user),
+) -> list[UsuarioDisponibleResponse]:
+    """Lista usuarios activos del tenant para seleccionar destinatarios.
+
+    Accesible para cualquier usuario autenticado (sin permiso especial).
+    Filtra solo usuarios con ``estado='activo'`` y no eliminados.
+    """
+    result = await db.execute(
+        select(Usuario).where(
+            Usuario.tenant_id == ctx.tenant_id,
+            Usuario.estado == "Activo",
+            Usuario.deleted_at.is_(None),
+        ).order_by(Usuario.nombre, Usuario.apellidos)
+    )
+    usuarios = result.scalars().all()
+    return [
+        UsuarioDisponibleResponse(
+            id=str(u.id),
+            nombre=u.nombre,
+            apellidos=u.apellidos,
+        )
+        for u in usuarios
+    ]
 
 
 # ── GET /api/inbox/{hilo_id} — leer hilo ─────────────────────────────────

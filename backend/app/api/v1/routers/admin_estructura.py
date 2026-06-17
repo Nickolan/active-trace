@@ -122,7 +122,7 @@ async def crear_carrera(
 
 @router.get(
     "/carreras",
-    dependencies=[Depends(require_permission("estructura:gestionar"))],
+    dependencies=[Depends(require_permission("atrasados:ver"))],
 )
 async def listar_carreras(
     current_user: UserContext = Depends(get_current_user),
@@ -136,7 +136,7 @@ async def listar_carreras(
 
 @router.get(
     "/carreras/{carrera_id}",
-    dependencies=[Depends(require_permission("estructura:gestionar"))],
+    dependencies=[Depends(require_permission("atrasados:ver"))],
 )
 async def obtener_carrera(
     carrera_id: UUID,
@@ -210,7 +210,7 @@ async def crear_materia(
 
 @router.get(
     "/materias",
-    dependencies=[Depends(require_permission("estructura:gestionar"))],
+    dependencies=[Depends(require_permission("atrasados:ver"))],
 )
 async def listar_materias(
     current_user: UserContext = Depends(get_current_user),
@@ -224,7 +224,7 @@ async def listar_materias(
 
 @router.get(
     "/materias/{materia_id}",
-    dependencies=[Depends(require_permission("estructura:gestionar"))],
+    dependencies=[Depends(require_permission("atrasados:ver"))],
 )
 async def obtener_materia(
     materia_id: UUID,
@@ -298,7 +298,7 @@ async def crear_cohorte(
 
 @router.get(
     "/cohortes",
-    dependencies=[Depends(require_permission("estructura:gestionar"))],
+    dependencies=[Depends(require_permission("atrasados:ver"))],
 )
 async def listar_cohortes(
     current_user: UserContext = Depends(get_current_user),
@@ -312,7 +312,7 @@ async def listar_cohortes(
 
 @router.get(
     "/cohortes/{cohorte_id}",
-    dependencies=[Depends(require_permission("estructura:gestionar"))],
+    dependencies=[Depends(require_permission("atrasados:ver"))],
 )
 async def obtener_cohorte(
     cohorte_id: UUID,

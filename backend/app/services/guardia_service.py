@@ -73,17 +73,17 @@ class GuardiaService:
 
     # ── Asignación lookup ────────────────────────────────────────────────
 
-    async def _get_mi_asignacion_id(self) -> UUID:
-        """Retorna el ``asignacion.id`` del usuario actual (actor_id).
-
-        Busca la asignación activa (más reciente) del usuario en el tenant
-        actual.  Si no existe, lanza BusinessError.
+    async def _get_mi_asignacion(self) -> Asignacion:
+        """Retorna la asignación activa más reciente del usuario actual.
 
         Returns:
-            UUID de la asignación.
+            Asignacion completa.
+
+        Raises:
+            BusinessError: Si no existe ninguna asignación activa.
         """
         stmt = (
-            sa_select(Asignacion.id)
+            sa_select(Asignacion)
             .where(
                 Asignacion.tenant_id == self.tenant_id,
                 Asignacion.usuario_id == self.actor_id,
@@ -92,13 +92,22 @@ class GuardiaService:
             .order_by(Asignacion.desde.desc())
             .limit(1)
         )
-        result = await self.session.execute(stmt)
-        row = result.scalar_one_or_none()
-        if row is None:
+        result = await self.session.scalars(stmt)
+        asignacion = result.one_or_none()
+        if asignacion is None:
             raise BusinessError(
                 "No se encontró una asignación activa para el usuario actual"
             )
-        return row
+        return asignacion
+
+    async def _get_mi_asignacion_id(self) -> UUID:
+        """Retorna el ``asignacion.id`` del usuario actual.
+
+        Returns:
+            UUID de la asignación.
+        """
+        asignacion = await self._get_mi_asignacion()
+        return asignacion.id
 
     # ── Validación de alcance ─────────────────────────────────────────────
 
@@ -151,15 +160,36 @@ class GuardiaService:
         estado_enum = EstadoGuardia.PENDIENTE
 
         resolved_asignacion_id = asignacion_id
-        if resolved_asignacion_id is None and not self._es_admin:
+        resolved_materia_id = datos.materia_id
+        resolved_carrera_id = datos.carrera_id
+        resolved_cohorte_id = datos.cohorte_id
+
+        if not self._es_admin:
+            # Si no es admin y falta alguno, resolver desde su asignación
+            if (
+                resolved_asignacion_id is None
+                or resolved_materia_id is None
+                or resolved_carrera_id is None
+                or resolved_cohorte_id is None
+            ):
+                asignacion = await self._get_mi_asignacion()
+                resolved_asignacion_id = asignacion.id
+                if resolved_materia_id is None:
+                    resolved_materia_id = asignacion.materia_id
+                if resolved_carrera_id is None:
+                    resolved_carrera_id = asignacion.carrera_id
+                if resolved_cohorte_id is None:
+                    resolved_cohorte_id = asignacion.cohorte_id
+        elif resolved_asignacion_id is None:
+            # Es admin pero no envió asignacion_id → resolver igual
             resolved_asignacion_id = await self._get_mi_asignacion_id()
 
         guardia = Guardia(
             tenant_id=self.tenant_id,
             asignacion_id=resolved_asignacion_id,
-            materia_id=datos.materia_id,
-            carrera_id=datos.carrera_id,
-            cohorte_id=datos.cohorte_id,
+            materia_id=resolved_materia_id,
+            carrera_id=resolved_carrera_id,
+            cohorte_id=resolved_cohorte_id,
             dia=dia_enum,
             horario=datos.horario,
             estado=estado_enum,
@@ -172,7 +202,7 @@ class GuardiaService:
             accion=ACCION_GUARDIA_REGISTRAR,
             actor_id=self.actor_id,
             tenant_id=self.tenant_id,
-            materia_id=datos.materia_id,
+            materia_id=resolved_materia_id,
             detalle={
                 "guardia_id": str(guardia.id),
                 "asignacion_id": str(guardia.asignacion_id),

@@ -142,7 +142,7 @@ async def listar_avisos(
     severidad: str | None = Query(None),
     activo: bool | None = Query(None),
     db: AsyncSession = Depends(get_db),
-    ctx: UserContext = Depends(require_permission("avisos:gestionar")),
+    ctx: UserContext = Depends(require_permission("avisos:ver")),
 ) -> dict:
     """Lista avisos del tenant con filtros opcionales."""
     service = _build_service(db, ctx)

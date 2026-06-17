@@ -1,15 +1,3 @@
-/**
- * NuevoHiloForm — formulario de composición de nuevo hilo.
- *
- * NOTA (Fase 0): El endpoint GET /api/admin/usuarios requiere el permiso
- * `admin:gestionar-usuarios`. No existe un endpoint de usuarios accesible
- * sin ese permiso (verificado en inbox.py — no expone ningún endpoint de
- * listado de usuarios). Por lo tanto, este componente usa GET /api/admin/usuarios
- * como fallback. Si el usuario no tiene ese permiso, el selector mostrará
- * un error de autorización. Una mejora futura sería que el backend exponga
- * GET /api/inbox/usuarios-disponibles sin restricción de permiso de admin.
- */
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate } from "react-router-dom";
@@ -31,8 +19,8 @@ interface UsuarioItem {
 }
 
 async function fetchUsuariosDisponibles(): Promise<UsuarioItem[]> {
-  const { data } = await api.get<{ items: UsuarioItem[] }>("/admin/usuarios");
-  return data.items;
+  const { data } = await api.get<UsuarioItem[]>("/inbox/usuarios-disponibles");
+  return data;
 }
 
 export function NuevoHiloForm() {

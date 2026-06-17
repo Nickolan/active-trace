@@ -1,12 +1,23 @@
 import { Outlet, NavLink } from "react-router-dom";
-
-const sub_nav = [
-  { label: "Panel", path: "panel" },
-  { label: "Convocatorias", path: "convocatorias" },
-  { label: "Admin", path: "admin" },
-];
+import { useAuth } from "@/shared/hooks/useAuth";
 
 export function ColoquiosLayout() {
+  const { permissions } = useAuth();
+  const puede_gestionar_o_ver =
+    permissions.includes("coloquios:gestionar") ||
+    permissions.includes("coloquios:ver");
+
+  const sub_nav = [
+    ...(puede_gestionar_o_ver
+      ? [
+          { label: "Panel", path: "panel" },
+          { label: "Convocatorias", path: "convocatorias" },
+          { label: "Admin", path: "admin" },
+        ]
+      : []),
+    { label: "Mis Reservas", path: "mis-reservas" },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="border-b border-gray-200">
