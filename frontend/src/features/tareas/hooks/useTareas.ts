@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  fetchDocentes,
+  fetchMaterias,
   fetchMisTareas,
   fetchTareasAdmin,
   fetchTareaById,
@@ -13,6 +15,22 @@ import type {
   ComentarioCreate,
   TareasFilters,
 } from "@/features/tareas/types/tareas";
+
+export function useDocentes() {
+  return useQuery({
+    queryKey: ["tareas", "docentes"],
+    queryFn: fetchDocentes,
+    staleTime: 60_000,
+  });
+}
+
+export function useMaterias() {
+  return useQuery({
+    queryKey: ["tareas", "materias"],
+    queryFn: fetchMaterias,
+    staleTime: 60_000,
+  });
+}
 
 export function useMisTareas(estado?: string, materiaId?: string) {
   return useQuery({

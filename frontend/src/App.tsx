@@ -75,6 +75,7 @@ import { ColoquiosPanelPage } from "@/features/coloquios/pages/ColoquiosPanelPag
 import { ConvocatoriaListPage } from "@/features/coloquios/pages/ConvocatoriaListPage";
 import { ConvocatoriaFormPage } from "@/features/coloquios/pages/ConvocatoriaFormPage";
 import { ColoquiosAdminPage } from "@/features/coloquios/pages/ColoquiosAdminPage";
+import { MisReservasPage } from "@/features/coloquios/pages/MisReservasPage";
 
 export function App() {
   return (
@@ -185,7 +186,7 @@ export function App() {
             <Route
               path="avisos"
               element={
-                <RequirePermission permission="avisos:gestionar">
+                <RequirePermission permission="avisos:ver">
                   <AvisosListPage />
                 </RequirePermission>
               }
@@ -201,7 +202,7 @@ export function App() {
             <Route
               path="avisos/:id"
               element={
-                <RequirePermission permission="avisos:gestionar">
+                <RequirePermission permission="avisos:ver">
                   <AvisoDetailPage />
                 </RequirePermission>
               }
@@ -251,12 +252,13 @@ export function App() {
             <Route
               path="coloquios"
               element={
-                <RequirePermission permission="coloquios:gestionar">
+                <RequirePermission permission={["coloquios:gestionar", "coloquios:reservar"]}>
                   <ColoquiosLayout />
                 </RequirePermission>
               }
             >
-              <Route index element={<Navigate to="panel" replace />} />
+              <Route index element={<Navigate to="mis-reservas" replace />} />
+              <Route path="mis-reservas" element={<MisReservasPage />} />
               <Route path="panel" element={<ColoquiosPanelPage />} />
               <Route path="convocatorias" element={<ConvocatoriaListPage />} />
               <Route path="convocatorias/nueva" element={<ConvocatoriaFormPage />} />

@@ -59,24 +59,9 @@ def _alumno_token() -> str:
 async def _seed_rbac_base(db_session: AsyncSession) -> None:
     """Seed minimo para que estructura:gestionar funcione.
 
-    Inserta permiso, rol ADMIN y la relacion rol_permiso para
+    Inserta permisos, rol ADMIN y las relaciones rol_permiso para
     el tenant de desarrollo (0000...001).
     """
-    # Permiso
-    perm_id = uuid4()
-    await db_session.execute(
-        text(
-            "INSERT INTO permiso (id, codigo, descripcion, created_at) "
-            "VALUES (:id, :codigo, :descripcion, now()) "
-            "ON CONFLICT (codigo) DO NOTHING"
-        ),
-        {
-            "id": perm_id,
-            "codigo": "estructura:gestionar",
-            "descripcion": "Gestionar estructura academica",
-        },
-    )
-
     # Rol ADMIN
     rol_id = uuid4()
     await db_session.execute(
@@ -95,21 +80,54 @@ async def _seed_rbac_base(db_session: AsyncSession) -> None:
             "descripcion": "Admin",
         },
     )
-
-    # Vincular
-    await db_session.execute(
-        text(
-            "INSERT INTO rol_permiso (id, tenant_id, rol_id, permiso_id, created_at) "
-            "VALUES (:id, :tenant_id, :rol_id, :permiso_id, now()) "
-            "ON CONFLICT DO NOTHING"
-        ),
-        {
-            "id": uuid4(),
-            "tenant_id": _DEV_TENANT_ID,
-            "rol_id": rol_id,
-            "permiso_id": perm_id,
-        },
+    # Re-query rol_id (puede ya existir por ON CONFLICT)
+    row = await db_session.execute(
+        text("SELECT id FROM rol WHERE tenant_id=:t AND codigo='ADMIN'"),
+        {"t": _DEV_TENANT_ID},
     )
+    rol_id = row.scalar_one()
+
+    # Permisos
+    permisos_codigos = [
+        "estructura:gestionar",
+        "atrasados:ver",
+    ]
+    perm_ids: dict[str, UUID] = {}
+    for codigo in permisos_codigos:
+        pid = uuid4()
+        await db_session.execute(
+            text(
+                "INSERT INTO permiso (id, codigo, descripcion, created_at) "
+                "VALUES (:id, :codigo, :descripcion, now()) "
+                "ON CONFLICT (codigo) DO NOTHING"
+            ),
+            {
+                "id": pid,
+                "codigo": codigo,
+                "descripcion": f"Permiso {codigo}",
+            },
+        )
+        row = await db_session.execute(
+            text("SELECT id FROM permiso WHERE codigo=:c"),
+            {"c": codigo},
+        )
+        perm_ids[codigo] = row.scalar_one()
+
+    # Vincular todos los permisos al rol ADMIN
+    for pid in perm_ids.values():
+        await db_session.execute(
+            text(
+                "INSERT INTO rol_permiso (id, tenant_id, rol_id, permiso_id, created_at) "
+                "VALUES (:id, :tenant_id, :rol_id, :permiso_id, now()) "
+                "ON CONFLICT DO NOTHING"
+            ),
+            {
+                "id": uuid4(),
+                "tenant_id": _DEV_TENANT_ID,
+                "rol_id": rol_id,
+                "permiso_id": pid,
+            },
+        )
 
     await db_session.commit()
 

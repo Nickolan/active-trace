@@ -39,7 +39,10 @@ export const TareaConComentariosSchema = TareaSchema.extend({
 export type TareaConComentarios = z.infer<typeof TareaConComentariosSchema>;
 
 export const TareaCreateSchema = z.object({
-  materia_id: z.string().uuid().nullable().optional(),
+  materia_id: z.preprocess(
+    (v) => (v === "" || v === null ? undefined : v),
+    z.string().uuid().optional(),
+  ),
   asignado_a: z.string().uuid("Seleccioná un docente"),
   descripcion: z.string().min(1, "La descripción es obligatoria"),
 }).strict();
@@ -71,4 +74,17 @@ export interface TareasFilters {
   asignado_a?: string;
   asignado_por?: string;
   busqueda?: string;
+}
+
+export interface DocenteItem {
+  id: string;
+  nombre: string;
+  apellidos: string;
+}
+
+export interface MateriaItem {
+  id: string;
+  nombre: string;
+  codigo: string;
+  estado: string;
 }

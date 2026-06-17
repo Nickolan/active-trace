@@ -8,7 +8,19 @@ import type {
   ComentarioCreate,
   TareaListResponse,
   TareasFilters,
+  DocenteItem,
+  MateriaItem,
 } from "@/features/tareas/types/tareas";
+
+export async function fetchDocentes(): Promise<DocenteItem[]> {
+  const { data } = await api.get<DocenteItem[]>("/tareas/docentes");
+  return data;
+}
+
+export async function fetchMaterias(): Promise<MateriaItem[]> {
+  const { data } = await api.get<MateriaItem[]>("/tareas/materias");
+  return data;
+}
 
 export async function fetchMisTareas(
   estado?: string,

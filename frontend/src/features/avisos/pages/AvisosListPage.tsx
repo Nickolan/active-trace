@@ -5,6 +5,7 @@ import { Button } from "@/shared/components/Button";
 import { useAvisos, useEliminarAviso } from "@/features/avisos/hooks/useAvisos";
 import type { AvisoResponse, AvisoFilters } from "@/features/avisos/types/avisos";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
+import { useAuth } from "@/shared/hooks/useAuth";
 
 const select_class =
   "block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500";
@@ -42,11 +43,13 @@ function ActivoBadge({ activo }: { activo: boolean }) {
 
 export function AvisosListPage() {
   const navigate = useNavigate();
+  const { permissions } = useAuth();
   const [filters, setFilters] = useState<AvisoFilters>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { data, isLoading, isError, error } = useAvisos(filters);
   
   const eliminarAviso = useEliminarAviso();
+  const puede_gestionar = permissions.includes("avisos:gestionar");
 
   const columns: Column<AvisoResponse>[] = [
     {
@@ -69,9 +72,27 @@ export function AvisosListPage() {
       sortable: true,
       render: (row) => <SeveridadBadge severidad={row.severidad} />,
     },
-    { key: "inicio_en", label: "Inicio", sortable: true },
-    { key: "fin_en", label: "Fin", sortable: true },
-    { key: "requiere_ack", label: "Requiere ACK" },
+    {
+      key: "inicio_en",
+      label: "Inicio",
+      sortable: true,
+      render: (row) => new Date(row.inicio_en).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" }),
+    },
+    {
+      key: "fin_en",
+      label: "Fin",
+      sortable: true,
+      render: (row) => row.fin_en ? new Date(row.fin_en).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" }) : "—",
+    },
+    {
+      key: "requiere_ack",
+      label: "Requiere ACK",
+      render: (row) => row.requiere_ack ? (
+        <span className="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Sí</span>
+      ) : (
+        <span className="text-gray-400">—</span>
+      ),
+    },
     {
       key: "porcentaje_ack",
       label: "% ACK",
@@ -84,28 +105,32 @@ export function AvisosListPage() {
       sortable: true,
       render: (row) => <ActivoBadge activo={row.activo} />,
     },
-    {
-      key: "id",
-      label: "Acciones",
-      render: (row) => (
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => navigate(`/avisos/${row.id}/editar`)}
-            className="text-sm text-brand-600 hover:text-brand-800"
-          >
-            Editar
-          </button>
-          <button
-            type="button"
-            onClick={() => setDeleteId(row.id)}
-            className="text-sm text-red-600 hover:text-red-800"
-          >
-            Eliminar
-          </button>
-        </div>
-      ),
-    },
+    ...(puede_gestionar
+      ? [
+          {
+            key: "id" as const,
+            label: "Acciones",
+            render: (row: AvisoResponse) => (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/avisos/${row.id}/editar`)}
+                  className="text-sm text-brand-600 hover:text-brand-800"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDeleteId(row.id)}
+                  className="text-sm text-red-600 hover:text-red-800"
+                >
+                  Eliminar
+                </button>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   const filter_bar = (
@@ -163,9 +188,11 @@ export function AvisosListPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800">Avisos</h2>
-        <Link to="/avisos/nuevo">
-          <Button>Nuevo aviso</Button>
-        </Link>
+        {puede_gestionar && (
+          <Link to="/avisos/nuevo">
+            <Button>Nuevo aviso</Button>
+          </Link>
+        )}
       </div>
 
       <FilterableTable
@@ -179,20 +206,22 @@ export function AvisosListPage() {
         pageSize={25}
       />
 
-      <ConfirmDialog
-        isOpen={!!deleteId}
-        onConfirm={() => {
-          if (deleteId) {
-            eliminarAviso.mutate(deleteId);
-            setDeleteId(null);
-          }
-        }}
-        onCancel={() => setDeleteId(null)}
-        title="Eliminar aviso"
-        message="¿Estás seguro de que querés eliminar este aviso? Esta acción no se puede deshacer."
-        variant="danger"
-        confirmLabel="Eliminar"
-      />
+      {puede_gestionar && (
+        <ConfirmDialog
+          isOpen={!!deleteId}
+          onConfirm={() => {
+            if (deleteId) {
+              eliminarAviso.mutate(deleteId);
+              setDeleteId(null);
+            }
+          }}
+          onCancel={() => setDeleteId(null)}
+          title="Eliminar aviso"
+          message="¿Estás seguro de que querés eliminar este aviso? Esta acción no se puede deshacer."
+          variant="danger"
+          confirmLabel="Eliminar"
+        />
+      )}
     </div>
   );
 }

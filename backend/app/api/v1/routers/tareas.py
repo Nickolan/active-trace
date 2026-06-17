@@ -25,12 +25,15 @@ from app.core.dependencies import (
 )
 from app.core.exceptions import BusinessError
 from app.models.usuario import Usuario
+from app.schemas.materia import MateriaResponse
 from app.schemas.tareas import (
     ComentarioCreate,
     TareaCreate,
     TareaEstadoUpdate,
 )
+from app.services.materia_service import MateriaService
 from app.services.tarea_service import TareaService
+from app.services.usuario_service import UsuarioService
 
 router = APIRouter(
     prefix="/api/tareas",
@@ -155,6 +158,52 @@ async def listar_todas(
         asignado_por=asignado_por,
         busqueda=busqueda,
     )
+
+
+# ── Listar docentes y materias para asignación ─────────────────────────────
+
+
+@router.get("/docentes")
+async def listar_docentes(
+    db: AsyncSession = Depends(get_db),
+    ctx: UserContext = Depends(require_permission("tareas:gestionar")),
+) -> list[dict]:
+    """Lista usuarios del tenant para asignar tareas.
+
+    Retorna solo id, nombre y apellidos — información suficiente para un
+    selector.  Accesible con ``tareas:gestionar``.
+    """
+    svc = UsuarioService(session=db, tenant_id=ctx.tenant_id)
+    usuarios = await svc.listar()
+    return [
+        {"id": str(u.id), "nombre": u.nombre, "apellidos": u.apellidos}
+        for u in usuarios
+    ]
+
+
+@router.get("/materias")
+async def listar_materias(
+    db: AsyncSession = Depends(get_db),
+    ctx: UserContext = Depends(require_permission("tareas:gestionar")),
+) -> list[MateriaResponse]:
+    """Lista materias del tenant para asignar tareas.
+
+    Accesible con ``tareas:gestionar``.
+    """
+    svc = MateriaService(session=db, tenant_id=ctx.tenant_id)
+    materias = await svc.listar()
+    return [
+        MateriaResponse(
+            id=str(m.id),
+            tenant_id=str(m.tenant_id),
+            codigo=m.codigo,
+            nombre=m.nombre,
+            estado=m.estado,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
+        )
+        for m in materias
+    ]
 
 
 # ── Operaciones sobre tarea individual ─────────────────────────────────────

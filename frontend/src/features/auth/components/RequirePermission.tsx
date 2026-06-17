@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/shared/hooks/useAuth";
 
 interface RequirePermissionProps {
-  /** Permission string in the format `modulo:accion`. */
-  permission: string;
+  /** Permission string in the format `modulo:accion` o array de permisos (OR). */
+  permission: string | string[];
   children: ReactNode;
   /** Optional fallback to render instead of a generic 403. */
   fallback?: ReactNode;
@@ -16,7 +16,11 @@ export function RequirePermission({
 }: RequirePermissionProps) {
   const { permissions } = useAuth();
 
-  if (!permissions.includes(permission)) {
+  const hasPermission = Array.isArray(permission)
+    ? permission.some((p) => permissions.includes(p))
+    : permissions.includes(permission);
+
+  if (!hasPermission) {
     if (fallback) return <>{fallback}</>;
 
     return (

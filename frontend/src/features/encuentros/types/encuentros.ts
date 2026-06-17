@@ -1,9 +1,9 @@
 import { z } from "zod";
 
 export const InstanciaEstadoEnum = z.enum([
-  "pendiente",
-  "realizado",
-  "cancelado",
+  "Programado",
+  "Realizado",
+  "Cancelado",
 ]);
 
 export const InstanciaSchema = z.object({

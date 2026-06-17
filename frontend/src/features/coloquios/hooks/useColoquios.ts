@@ -6,6 +6,7 @@ import {
   cerrarConvocatoria,
   importarAlumnos,
   fetchAgenda,
+  fetchMisReservas,
 } from "@/features/coloquios/services/coloquios";
 import type {
   EvaluacionCreate,
@@ -67,5 +68,12 @@ export function useAgenda(evaluacionId?: string) {
   return useQuery({
     queryKey: ["coloquios", "agenda", evaluacionId],
     queryFn: () => fetchAgenda(evaluacionId),
+  });
+}
+
+export function useMisReservas() {
+  return useQuery({
+    queryKey: ["coloquios", "mis-reservas"],
+    queryFn: fetchMisReservas,
   });
 }
