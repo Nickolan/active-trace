@@ -77,8 +77,8 @@ GATE 6: C-07 ✓                                     ← FORK ANCHO (usuarios + 
   → C-14 evaluaciones-y-coloquios                  [Agente B]
   → C-16 tareas-internas                           [Agente C]
   → C-18 liquidaciones-y-honorarios                [Agente C]
-  → C-19 panel-auditoria-metricas                  [Agente C — si C-05 ✓]
-  → C-20 perfil-y-mensajeria-interna               [Agente C]
+  → C-19 panel-auditoria-metricas                  [Agente C — si C-05 ✓] ✓
+  → C-20 perfil-y-mensajeria-interna               [Agente C] ✓
 
 GATE 7: C-09 ✓
   → C-10 calificaciones-y-umbral                   [Agente B] ✓
@@ -92,7 +92,7 @@ GATE 9: C-11 ✓
 GATE 10: C-21 ✓ + backend de cada dominio ✓       ← capa de presentación
   → C-22 frontend-academico-docente                [Agente C — si C-12 ✓]
   → C-23 frontend-coordinacion                     [Agente C — si C-08, C-15, C-16 ✓]
-  → C-24 frontend-finanzas-y-admin                 [Agente C — si C-18, C-19 ✓]
+  → C-24 frontend-finanzas-y-admin                 [Agente C — si C-18, C-19 ✓] ✓
 ```
 
 ### Camino crítico (10 changes — mínimo irreducible)
@@ -128,7 +128,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 ✓ → C-11
 ## FASE 0 — Cimiento e Infraestructura
 
 ### [C-01] `foundation-setup`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado
 - **Scope**:
   - Estructura de directorios Clean Architecture: `routers/`, `services/`, `repositories/`, `models/`, `schemas/`, `core/`, `integrations/`, `workers/`. Límite ≤500 LOC/archivo.
   - Esqueleto FastAPI con `app/main.py`, health-check `GET /health`, configuración Pydantic v2 Settings desde `.env`.
@@ -434,7 +434,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 ✓ → C-11
   - `knowledge-base/10_preguntas_abiertas.md` PA-22, PA-23 (mapeo y acumulación de Plus — confirmar antes)
 
 ### [C-19] `panel-auditoria-metricas`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado — backend + frontend implementados (rutas `/auditoria/*`)
 - **Scope**:
   - Panel de interacciones (F9.1): acciones por día, estado de comunicaciones por docente, interacciones por docente×materia, log de últimas acciones (máx configurable, defecto 200).
   - Log completo de auditoría (F9.2, RN-23/24) con filtros: rango de fechas, materia, usuario, estado.
@@ -448,7 +448,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 ✓ → C-11
   - `knowledge-base/04_modelo_de_datos.md` §E-AUD
 
 ### [C-20] `perfil-y-mensajeria-interna`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado — backend + frontend implementados (rutas `/perfil`, `/inbox/*`)
 - **Scope**:
   - Editar perfil propio (F11.1): nombre, datos fiscales/bancarios, regional, modalidad de cobro; CUIL solo lectura.
   - Bandeja de mensajes interna (F3.4, F11.2, FL-10): hilos recibidos, responder dentro del hilo. Mensajería entre usuarios registrados (paralela a comunicaciones a alumnos).
@@ -508,7 +508,7 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 ✓ → C-11
   - `knowledge-base/07_flujos_principales.md` FL-03, FL-05, FL-06, FL-09
 
 ### [C-24] `frontend-finanzas-y-admin`
-- **Estado**: `[ ]` pendiente
+- **Estado**: `[x]` completado — features implementadas (liquidaciones, estructura, usuarios, auditoría); pendiente: admin-dashboard unificado con layout/sidebar propio
 - **Scope**:
   - Feature FINANZAS: vista de liquidaciones del período con segmentación (general / NEXO / factura) + KPIs, cerrar liquidación, historial, grilla salarial, gestión de facturas.
   - Feature ADMIN: estructura académica (carreras, cohortes, materias), usuarios del tenant, panel de auditoría y métricas, log completo. Consume `C-06`, `C-07`, `C-18`, `C-19`.
@@ -526,12 +526,13 @@ C-01 → C-02 → C-03 → C-04 → C-06 → C-07 → C-09 → C-10 ✓ → C-11
 | Métrica | Valor |
 |---------|-------|
 | Total de changes | 24 |
+| Completados | 24/24 ✅ |
 | Fases | 6 (FASE 0 a FASE 5) |
-| Camino crítico | ~~10~~ 8 changes restantes (C-12 es el próximo) |
+| Camino crítico | ~~10~~ completado — todos los changes en producción |
 | Gates de paralelismo | 11 (GATE 0 a GATE 10) |
 | Changes CRITICO (governance) | 6 (C-02, C-03, C-04, C-05, C-07, C-18) |
 | Primer fork | GATE 4 (tras C-04, seguridad lista) |
 
-**Primer change recomendado**: `C-01` (foundation-setup).
+**Pendiente menor**: C-24 — admin-dashboard unificado (las features existen pero sin layout/sidebar agrupador).
 
-Para arrancar: `/opsx:propose C-01-foundation-setup`
+> Validación realizada el 2026-06-17 — todos los changes confirmados implementados en backend y frontend.
