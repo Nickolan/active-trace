@@ -25,6 +25,7 @@ from app.core.exceptions import BusinessError
 from app.schemas.equipo import (
     AsignacionMasivaRequest,
     ClonarEquipoRequest,
+    ClonarPorCohorteRequest,
     ClonarResponse,
     EquipoResponse,
     VigenciaRequest,
@@ -180,6 +181,32 @@ async def clonar_equipo(
     svc = _build_service(db, current_user.tenant_id, current_user.user_id)
     try:
         result = await svc.clonar_equipo(body)
+    except BusinessError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc.message),
+        )
+    return result
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# POST /api/equipos/clonar-cohorte
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@router.post(
+    "/equipos/clonar-cohorte",
+    dependencies=[Depends(require_permission("equipos:asignar"))],
+)
+async def clonar_equipo_por_cohorte(
+    body: ClonarPorCohorteRequest,
+    current_user: UserContext = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ClonarResponse:
+    """Clona todas las asignaciones de un cohorte origen a un destino."""
+    svc = _build_service(db, current_user.tenant_id, current_user.user_id)
+    try:
+        result = await svc.clonar_por_cohorte(body)
     except BusinessError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -62,7 +62,7 @@ class Comunicacion(Base, BaseMixin):
     asunto = Column(String(200), nullable=False)
     cuerpo = Column(Text, nullable=False)
     estado = Column(
-        Enum(EstadoComunicacion),
+        Enum(EstadoComunicacion, native_enum=False),
         nullable=False,
         default=EstadoComunicacion.Pendiente,
         server_default="Pendiente",
@@ -79,6 +79,11 @@ class Comunicacion(Base, BaseMixin):
     )
     aprobado_at = Column(DateTime(timezone=True), nullable=True)
     aprobado_por_id = Column(
+        PGUUID(as_uuid=True),
+        ForeignKey("usuario.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    destinatario_usuario_id = Column(
         PGUUID(as_uuid=True),
         ForeignKey("usuario.id", ondelete="SET NULL"),
         nullable=True,

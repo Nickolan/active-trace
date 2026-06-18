@@ -51,6 +51,17 @@ class ClonarEquipoRequest(BaseModel):
     destino_hasta: Optional[datetime] = None
 
 
+class ClonarPorCohorteRequest(BaseModel):
+    """Body para clonar todas las asignaciones de un cohorte a otro."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    origen_cohorte_id: str = Field(min_length=36, max_length=36)
+    destino_cohorte_id: str = Field(min_length=36, max_length=36)
+    destino_desde: datetime
+    destino_hasta: Optional[datetime] = None
+
+
 class VigenciaRequest(BaseModel):
     """Body para modificar vigencia de todas las asignaciones de un equipo."""
 

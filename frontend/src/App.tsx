@@ -71,6 +71,9 @@ import { LogAuditoriaPage } from "@/features/auditoria/pages/LogAuditoriaPage";
 // ── Perfil ────────────────────────────────────────────────────────────────────
 import { PerfilPage } from "@/features/perfil/pages/PerfilPage";
 
+// ── Comunicaciones recibidas ──────────────────────────────────────────────────
+import { MisComunicacionesPage } from "@/features/comunicaciones/pages/MisComunicacionesPage";
+
 // ── Inbox ─────────────────────────────────────────────────────────────────────
 import { InboxPage } from "@/features/inbox/pages/InboxPage";
 import { HiloPage } from "@/features/inbox/pages/HiloPage";
@@ -317,6 +320,9 @@ export function App() {
 
             {/* ── Perfil ───────────────────────────────────────────────── */}
             <Route path="perfil" element={<PerfilPage />} />
+
+            {/* ── Mis Comunicaciones ───────────────────────────────────── */}
+            <Route path="mis-comunicaciones" element={<MisComunicacionesPage />} />
 
             {/* ── Inbox ────────────────────────────────────────────────── */}
             <Route path="inbox" element={<InboxPage />} />

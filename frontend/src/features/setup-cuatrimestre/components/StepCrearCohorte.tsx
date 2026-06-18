@@ -18,7 +18,7 @@ export function StepCrearCohorte({
 
   const carreras_query = useQuery({
     queryKey: ["carreras"],
-    queryFn: () => api.get<CarreraOption[]>("/carreras").then((r) => r.data),
+    queryFn: () => api.get<CarreraOption[]>("/admin/carreras").then((r) => r.data),
   });
 
   const form = useForm<CohorteInput>({

@@ -59,6 +59,7 @@ class ComunicacionRepository(BaseRepository[Comunicacion]):
                 enviado_por_id=enviado_por_id,
                 materia_id=materia_id,
                 destinatario=dest["valor"],
+                destinatario_usuario_id=dest.get("usuario_id"),
                 asunto=asunto,
                 cuerpo=cuerpo,
                 estado=EstadoComunicacion.Pendiente,
@@ -335,3 +336,32 @@ class ComunicacionRepository(BaseRepository[Comunicacion]):
             )
         )
         await self.session.execute(stmt)
+
+    async def listar_por_destinatario(
+        self,
+        destinatario_usuario_id: UUID,
+        pagina: int = 1,
+        tamano: int = 20,
+    ) -> tuple[list[Comunicacion], int]:
+        """Comunicaciones recibidas por un usuario, paginadas."""
+        filters = [
+            *self._tenant_filter(),
+            self.model.destinatario_usuario_id == destinatario_usuario_id,
+        ]
+        total_q = (
+            select(func.count())
+            .select_from(self.model)
+            .where(and_(*filters))
+        )
+        total = await self.session.scalar(total_q) or 0
+
+        offset = (pagina - 1) * tamano
+        items_q = (
+            select(self.model)
+            .where(and_(*filters))
+            .order_by(self.model.created_at.desc())
+            .offset(offset)
+            .limit(tamano)
+        )
+        result = await self.session.scalars(items_q)
+        return list(result.all()), total

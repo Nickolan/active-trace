@@ -21,6 +21,7 @@ from app.core.exceptions import BusinessError
 from app.models.asignacion import Asignacion
 from app.models.comunicacion import Comunicacion, EstadoComunicacion
 from app.models.entrada_padron import EntradaPadron
+from app.models.usuario import Usuario
 from app.repositories.comunicacion_repository import ComunicacionRepository
 from app.schemas.comunicacion import CancelarResponse
 
@@ -172,6 +173,28 @@ class ComunicacionService:
                 "(comisión no asignada)"
             )
 
+    # ── Resolución de usuario_id ─────────────────────────────────────
+
+    async def _resolver_destinatario_usuario_id(
+        self, tipo: str, valor: str
+    ) -> UUID | None:
+        """Resuelve el usuario_id del destinatario según el tipo de referencia."""
+        if tipo == "usuario_id":
+            return UUID(valor)
+        if tipo == "entrada_padron_id":
+            ep = await self.session.get(EntradaPadron, UUID(valor))
+            if ep is not None:
+                return ep.usuario_id
+        if tipo == "email":
+            result = await self.session.execute(
+                select(Usuario.id).where(
+                    Usuario.email == valor,
+                    Usuario.tenant_id == self.tenant_id,
+                )
+            )
+            return result.scalar_one_or_none()
+        return None
+
     # ── Encolar ─────────────────────────────────────────────────────
 
     async def encolar_envio(
@@ -209,6 +232,14 @@ class ComunicacionService:
             usuario_id, materia_id, destinatarios, roles
         )
 
+        # Adjuntar usuario_id resuelto a cada destinatario
+        destinatarios_resueltos = []
+        for dest in destinatarios:
+            uid = await self._resolver_destinatario_usuario_id(
+                dest["tipo"], dest["valor"]
+            )
+            destinatarios_resueltos.append({**dest, "usuario_id": uid})
+
         necesita_aprobacion = requiere_aprobacion and len(destinatarios) > 1
 
         lote_id = uuid4()
@@ -219,7 +250,7 @@ class ComunicacionService:
             lote_id=lote_id,
             asunto=asunto,
             cuerpo=cuerpo,
-            destinatarios=destinatarios,
+            destinatarios=destinatarios_resueltos,
         )
 
         if necesita_aprobacion:
@@ -272,7 +303,16 @@ class ComunicacionService:
         )
 
         lote_id = uuid4()
-        destinatarios = [{"tipo": "entrada_padron_id", "valor": str(entrada_padron_id)}]
+        uid = await self._resolver_destinatario_usuario_id(
+            "entrada_padron_id", str(entrada_padron_id)
+        )
+        destinatarios = [
+            {
+                "tipo": "entrada_padron_id",
+                "valor": str(entrada_padron_id),
+                "usuario_id": uid,
+            }
+        ]
 
         creadas = await self.repo.crear_muchos(
             tenant_id=tenant_id,
@@ -347,6 +387,39 @@ class ComunicacionService:
                     "created_at": c.created_at,
                     "total": 1,
                     "estado": c.estado.value,
+                }
+                for c in items
+            ],
+            "total": total,
+            "pagina": pagina,
+        }
+
+    async def obtener_mis_recibidas(
+        self,
+        usuario_id: UUID,
+        pagina: int = 1,
+        tamano: int = 20,
+    ) -> dict:
+        """Historial paginado de comunicaciones recibidas por el usuario."""
+        items, total = await self.repo.listar_por_destinatario(
+            destinatario_usuario_id=usuario_id,
+            pagina=pagina,
+            tamano=tamano,
+        )
+        return {
+            "items": [
+                {
+                    "id": c.id,
+                    "asunto": c.asunto,
+                    "cuerpo": c.cuerpo,
+                    "estado": c.estado.value,
+                    "remitente_nombre": (
+                        f"{c.remitente.nombre} {c.remitente.apellidos}"
+                        if c.remitente
+                        else None
+                    ),
+                    "created_at": c.created_at,
+                    "enviado_at": c.enviado_at,
                 }
                 for c in items
             ],
