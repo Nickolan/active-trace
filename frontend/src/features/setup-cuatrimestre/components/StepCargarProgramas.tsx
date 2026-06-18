@@ -20,7 +20,7 @@ export function StepCargarProgramas({
 
   const materias_query = useQuery({
     queryKey: ["materias", cohorte_id],
-    queryFn: () => api.get<CarreraOption[]>(`/cohortes/${cohorte_id}/materias`).then((r) => r.data),
+    queryFn: () => api.get<CarreraOption[]>("/admin/materias").then((r) => r.data),
     enabled: !!cohorte_id,
   });
 

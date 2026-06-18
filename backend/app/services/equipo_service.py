@@ -25,6 +25,7 @@ from app.repositories.base import BaseRepository
 from app.schemas.equipo import (
     AsignacionMasivaRequest,
     ClonarEquipoRequest,
+    ClonarPorCohorteRequest,
     ClonarResponse,
     VigenciaRequest,
     VigenciaResponse,
@@ -411,6 +412,81 @@ class EquipoService:
             creadas=len(creadas),
             origen=f"{data.origen_materia_id}/{data.origen_carrera_id}/{data.origen_cohorte_id}",
             destino=f"{data.destino_materia_id}/{data.destino_carrera_id}/{data.destino_cohorte_id}",
+            asignaciones=asignaciones_response,
+        )
+
+    # ── Clonar por cohorte ────────────────────────────────────────────────
+
+    async def clonar_por_cohorte(
+        self, data: ClonarPorCohorteRequest
+    ) -> ClonarResponse:
+        """Clona todas las asignaciones de un cohorte origen a un destino.
+
+        Mantiene materia_id y carrera_id de cada asignacion; solo reemplaza
+        el cohorte_id y las fechas de vigencia.
+        """
+        origen_cohorte_id = UUID(data.origen_cohorte_id)
+        destino_cohorte_id = UUID(data.destino_cohorte_id)
+
+        origen = await self.repo.list_by_context(cohorte_id=origen_cohorte_id)
+
+        if not origen:
+            raise BusinessError("No hay asignaciones en el cohorte origen")
+
+        nuevas = []
+        for a in origen:
+            nuevas.append(Asignacion(
+                tenant_id=self.tenant_id,
+                usuario_id=a.usuario_id,
+                rol=a.rol,
+                materia_id=a.materia_id,
+                carrera_id=a.carrera_id,
+                cohorte_id=destino_cohorte_id,
+                comisiones=a.comisiones,
+                responsable_id=a.responsable_id,
+                desde=data.destino_desde,
+                hasta=data.destino_hasta,
+            ))
+
+        creadas = await self.repo.bulk_create(nuevas)
+
+        audit = self._build_audit_service()
+        await audit.register(
+            accion=ACCION_ASIGNACION_MODIFICAR,
+            actor_id=self.actor_id,
+            tenant_id=self.tenant_id,
+            detalle={
+                "tipo": "clonar_por_cohorte",
+                "origen_cohorte_id": data.origen_cohorte_id,
+                "destino_cohorte_id": data.destino_cohorte_id,
+            },
+            filas_afectadas=len(creadas),
+        )
+
+        asignaciones_response = [
+            AsignacionResponse(
+                id=str(a.id),
+                tenant_id=str(a.tenant_id),
+                usuario_id=str(a.usuario_id),
+                rol=a.rol,
+                materia_id=str(a.materia_id) if a.materia_id else None,
+                carrera_id=str(a.carrera_id) if a.carrera_id else None,
+                cohorte_id=str(a.cohorte_id) if a.cohorte_id else None,
+                comisiones=a.comisiones,
+                responsable_id=str(a.responsable_id) if a.responsable_id else None,
+                desde=a.desde,
+                hasta=a.hasta,
+                estado_vigencia=self._calcular_estado_vigencia(a.desde, a.hasta),
+                created_at=a.created_at,
+                updated_at=a.updated_at,
+            )
+            for a in creadas
+        ]
+
+        return ClonarResponse(
+            creadas=len(creadas),
+            origen=data.origen_cohorte_id,
+            destino=data.destino_cohorte_id,
             asignaciones=asignaciones_response,
         )
 
