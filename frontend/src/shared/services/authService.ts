@@ -71,6 +71,7 @@ export interface UserInfo {
   permisos: string[];
   tenant_id: string;
   usuario_id?: string;
+  totp_enabled?: boolean;
 }
 
 // ---------------------------------------------------------------------------

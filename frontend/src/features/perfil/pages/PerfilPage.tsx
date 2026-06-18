@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { usePerfil, useUpdatePerfil } from "@/features/perfil/hooks/usePerfil";
@@ -27,7 +27,7 @@ function ReadField({ label, value }: { label: string; value?: string | null }) {
 
 export function PerfilPage() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [editando, setEditando] = useState(false);
 
   const { data, isLoading, isError, error } = usePerfil();
@@ -222,6 +222,35 @@ export function PerfilPage() {
           )}
         </form>
       )}
+
+      {/* ── Sección Seguridad ─────────────────────────────────────────── */}
+      <div className="rounded-lg border bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">Seguridad</h2>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-700">
+              Autenticación de dos factores (2FA)
+            </p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              {user?.totp_enabled
+                ? "Activado — se te pedirá un código al iniciar sesión."
+                : "Desactivado — activá 2FA para mayor seguridad."}
+            </p>
+          </div>
+          {user?.totp_enabled ? (
+            <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+              Activo
+            </span>
+          ) : (
+            <Link
+              to="/2fa/enroll"
+              className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Activar 2FA
+            </Link>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

@@ -15,14 +15,17 @@ from __future__ import annotations
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import (
     UserContext,
+    get_current_user,
     get_db,
     require_permission,
 )
 from app.core.exceptions import BusinessError
+from app.models.usuario import Usuario
 from app.schemas.comunicacion import (
     AprobarRequest,
     CancelarResponse,
@@ -32,6 +35,7 @@ from app.schemas.comunicacion import (
     EnvioResponse,
     LoteResponse,
     MisEnviosResponse,
+    MisRecibidasResponse,
     PreviewRequest,
     PreviewResponse,
 )
@@ -45,6 +49,23 @@ router = APIRouter(
 
 def _build_service(db: AsyncSession, tenant_id: UUID) -> ComunicacionService:
     return ComunicacionService(session=db, tenant_id=tenant_id)
+
+
+async def _resolve_usuario_id(db: AsyncSession, user_id: UUID) -> UUID:
+    """Resuelve un user_id (JWT/auth) a usuario.id (tabla de dominio)."""
+    row = await db.get(Usuario, user_id)
+    if row is not None:
+        return row.id
+    result = await db.execute(
+        select(Usuario.id).where(Usuario.auth_user_id == user_id)
+    )
+    resolved = result.scalar_one_or_none()
+    if resolved is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario de dominio no encontrado",
+        )
+    return resolved
 
 
 @router.post("/preview", response_model=PreviewResponse)
@@ -77,9 +98,10 @@ async def enviar_comunicacion(
         )
 
     service = _build_service(db, ctx.tenant_id)
+    usuario_id = await _resolve_usuario_id(db, ctx.user_id)
     try:
         result = await service.encolar_envio(
-            usuario_id=ctx.user_id,
+            usuario_id=usuario_id,
             tenant_id=ctx.tenant_id,
             preview_token=body.preview_token,
             asunto=body.asunto,
@@ -111,9 +133,10 @@ async def enviar_comunicacion_individual(
         )
 
     service = _build_service(db, ctx.tenant_id)
+    usuario_id = await _resolve_usuario_id(db, ctx.user_id)
     try:
         result = await service.encolar_envio_individual(
-            usuario_id=ctx.user_id,
+            usuario_id=usuario_id,
             tenant_id=ctx.tenant_id,
             preview_token=body.preview_token,
             asunto=body.asunto,
@@ -142,13 +165,32 @@ async def mis_envios(
 ) -> MisEnviosResponse:
     """Lista los envios realizados por el usuario actual."""
     service = _build_service(db, ctx.tenant_id)
+    usuario_id = await _resolve_usuario_id(db, ctx.user_id)
     result = await service.obtener_mis_envios(
-        usuario_id=ctx.user_id,
+        usuario_id=usuario_id,
         tenant_id=ctx.tenant_id,
         pagina=pagina,
         tamano=tamano,
     )
     return MisEnviosResponse(**result)
+
+
+@router.get("/mis-recibidas", response_model=MisRecibidasResponse)
+async def mis_recibidas(
+    pagina: int = Query(1, ge=1),
+    tamano: int = Query(10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    ctx: UserContext = Depends(get_current_user),
+) -> MisRecibidasResponse:
+    """Lista las comunicaciones recibidas por el usuario actual."""
+    service = _build_service(db, ctx.tenant_id)
+    usuario_id = await _resolve_usuario_id(db, ctx.user_id)
+    result = await service.obtener_mis_recibidas(
+        usuario_id=usuario_id,
+        pagina=pagina,
+        tamano=tamano,
+    )
+    return MisRecibidasResponse(**result)
 
 
 @router.get("/{lote_id}", response_model=LoteResponse)
@@ -181,10 +223,11 @@ async def aprobar_o_rechazar_lote(
     """Aprueba o rechaza un lote que requiere aprobacion."""
     service = _build_service(db, ctx.tenant_id)
     try:
+        aprobador_id = await _resolve_usuario_id(db, ctx.user_id)
         if body.accion == "aprobar":
-            await service.aprobar_lote(lote_id=lote_id, aprobador_id=ctx.user_id)
+            await service.aprobar_lote(lote_id=lote_id, aprobador_id=aprobador_id)
         else:
-            await service.rechazar_lote(lote_id=lote_id, aprobador_id=ctx.user_id)
+            await service.rechazar_lote(lote_id=lote_id, aprobador_id=aprobador_id)
         return {"lote_id": str(lote_id), "accion": body.accion, "resultado": "ok"}
     except BusinessError as exc:
         raise HTTPException(
@@ -201,9 +244,10 @@ async def cancelar_comunicacion(
 ) -> CancelarResponse:
     """Cancela una comunicacion pendiente (individual)."""
     service = _build_service(db, ctx.tenant_id)
+    usuario_id = await _resolve_usuario_id(db, ctx.user_id)
     try:
         result = await service.cancelar_comunicacion(
-            comunicacion_id=comunicacion_id, usuario_id=ctx.user_id
+            comunicacion_id=comunicacion_id, usuario_id=usuario_id
         )
         return result
     except BusinessError as exc:

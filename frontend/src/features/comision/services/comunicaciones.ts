@@ -42,27 +42,147 @@ export interface CrearComunicacionResponse {
   estado: ComunicacionEstado;
 }
 
-export async function getComunicaciones(): Promise<ComunicacionesResponse> {
-  const { data } = await api.get<ComunicacionesResponse>(
-    `/comunicaciones/mis-envios`,
-  );
-  return data;
+// ── Backend response shapes ───────────────────────────────────────────────────
+
+interface BackendAtrasadoEntry {
+  alumno_id: string;
+  nombre: string;
+  apellidos: string;
+  legajo: string | null;
 }
 
-/** @deprecated No existe endpoint directo en backend. Usar preview + enviar. */
+interface BackendAtrasadosResponse {
+  alumnos_atrasados: BackendAtrasadoEntry[];
+  total_alumnos: number;
+}
+
+interface BackendPreviewResponse {
+  preview_token: string;
+  preview_html: string;
+  cantidad_destinatarios: number;
+}
+
+interface BackendEnvioResponse {
+  lote_id: string;
+  estado: string;
+  total_mensajes: number;
+  requiere_aprobacion: boolean;
+}
+
+interface BackendLoteResponse {
+  lote_id: string;
+  estado: string;
+  total: number;
+  enviados: number;
+  fallidos: number;
+}
+
+interface BackendMisEnviosItem {
+  lote_id: string;
+  materia_nombre: string | null;
+  created_at: string;
+  total: number;
+  estado: string;
+}
+
+interface BackendMisEnviosResponse {
+  items: BackendMisEnviosItem[];
+  total: number;
+  pagina: number;
+}
+
+// ── Service functions ─────────────────────────────────────────────────────────
+
+export async function getComunicaciones(): Promise<ComunicacionesResponse> {
+  const { data } = await api.get<BackendMisEnviosResponse>(
+    `/comunicaciones/mis-envios`,
+  );
+  return {
+    items: data.items.map((item) => ({
+      id: item.lote_id,
+      asunto: item.materia_nombre ?? "Comunicación",
+      estado: item.estado as ComunicacionEstado,
+      total_destinatarios: item.total,
+      enviados: 0,
+      fallidos: 0,
+      created_at: item.created_at,
+      materia_id: "",
+    })),
+    total: data.total,
+  };
+}
+
 export async function getAlumnosAtrasadosParaComunicacion(
-  _materiaId: string,
+  materiaId: string,
 ): Promise<AlumnoAtrasadoOption[]> {
-  console.warn("getAlumnosAtrasadosParaComunicacion no implementado en backend");
-  return [];
+  const { data } = await api.get<BackendAtrasadosResponse>(
+    `/analisis/atrasados`,
+    { params: { materia_id: materiaId } },
+  );
+  return data.alumnos_atrasados.map((entry) => ({
+    alumno_id: entry.alumno_id,
+    alumno: `${entry.nombre} ${entry.apellidos}`,
+    legajo: entry.legajo ?? "—",
+    seleccionado: true,
+  }));
 }
 
 export async function crearComunicacion(
   req: CrearComunicacionRequest,
 ): Promise<CrearComunicacionResponse> {
-  const { data } = await api.post<CrearComunicacionResponse>(
+  const destinatarios = req.destinatarios.map((id) => ({
+    tipo: "usuario_id",
+    valor: id,
+  }));
+
+  // Step 1: obtain preview_token required by /enviar
+  const { data: preview } = await api.post<BackendPreviewResponse>(
+    `/comunicaciones/preview`,
+    { asunto: req.asunto, cuerpo: req.cuerpo, destinatarios },
+  );
+
+  // Step 2: queue the send
+  const { data } = await api.post<BackendEnvioResponse>(
     `/comunicaciones/enviar`,
-    { ...req, acepta_terminos: true, requiere_aprobacion: false },
+    {
+      preview_token: preview.preview_token,
+      asunto: req.asunto,
+      cuerpo: req.cuerpo,
+      materia_id: req.materia_id,
+      destinatarios,
+      acepta_terminos: true,
+      requiere_aprobacion: false,
+    },
+  );
+
+  return { id: data.lote_id, estado: data.estado as ComunicacionEstado };
+}
+
+// ── Mis comunicaciones recibidas ─────────────────────────────────────────────
+
+export interface ComunicacionRecibidaItem {
+  id: string;
+  asunto: string;
+  cuerpo: string;
+  estado: string;
+  remitente_nombre: string | null;
+  created_at: string;
+  enviado_at: string | null;
+}
+
+export interface MisRecibidasResponse {
+  items: ComunicacionRecibidaItem[];
+  total: number;
+  pagina: number;
+}
+
+export async function getMisRecibidas(
+  pagina: number = 1,
+  tamano: number = 10,
+): Promise<MisRecibidasResponse> {
+  const { data } = await api.get<MisRecibidasResponse>(
+    `/comunicaciones/mis-recibidas`,
+    { params: { pagina, tamano } },
   );
   return data;
 }
@@ -70,8 +190,17 @@ export async function crearComunicacion(
 export async function getComunicacion(
   loteId: string,
 ): Promise<ComunicacionItem> {
-  const { data } = await api.get<ComunicacionItem>(
+  const { data } = await api.get<BackendLoteResponse>(
     `/comunicaciones/${loteId}`,
   );
-  return data;
+  return {
+    id: data.lote_id,
+    asunto: "",
+    estado: data.estado as ComunicacionEstado,
+    total_destinatarios: data.total,
+    enviados: data.enviados,
+    fallidos: data.fallidos,
+    created_at: "",
+    materia_id: "",
+  };
 }

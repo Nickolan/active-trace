@@ -131,3 +131,23 @@ class EnvioIndividualResponse(BaseModel):
 
     comunicacion_id: UUID
     estado: str
+
+
+class MisRecibidasItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: UUID
+    asunto: str
+    cuerpo: str
+    estado: str
+    remitente_nombre: str | None = None
+    created_at: datetime
+    enviado_at: datetime | None = None
+
+
+class MisRecibidasResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    items: list[MisRecibidasItem]
+    total: int
+    pagina: int
