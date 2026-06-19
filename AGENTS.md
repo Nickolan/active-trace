@@ -131,6 +131,7 @@ Estas reglas son **contrato**. Romperlas es un defecto, no una decisión de esti
 14. **Identidad por UUID interno.** El legajo es un atributo de negocio, nunca credencial ni selector de sesión.
 15. **≤500 LOC por archivo backend**, componentes React <200 LOC. Una migración Alembic por cambio de schema.
 16. **Cobertura mínima**: ≥80% líneas, ≥90% reglas de negocio. **Strict TDD**: test que falla → código mínimo → triangulación → refactor.
+17. **Engram sync obligatorio al iniciar y cerrar sesión.** Al iniciar sesión: ejecutar `engram sync --import` para recuperar la memoria del proyecto desde `.engram/`. Llamar `mem_context` o `mem_search` para restaurar contexto de sesiones anteriores. Al cerrar sesión o al hacer push: ejecutar `engram sync` para exportar memoria a `.engram/chunks/`, luego `git add .engram` y commitear con mensaje `chore(engram): sync project memory`. Esta operación está exenta de la regla #2 (que prohíbe commitear sin permiso) — el sync de engram se hace siempre, automáticamente. En repositorios públicos, verificar primero con el usuario que no haya datos sensibles en la memoria antes de versionar `.engram/`.
 
 ---
 
